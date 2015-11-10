@@ -19,7 +19,7 @@ public class ShowValueByDataBase {
 	
 	public String voChildPackageName = basePackageName + ".vo;";
 	
-	public String xmlBaseNamespace = "cn.com.enorth.cebx.mapper.";
+	public String xmlBaseNamespace = "cn.com.enorth.govopen.mapper.";
 	
 	public boolean isHaveParentVo = true;
 	
@@ -38,9 +38,9 @@ public class ShowValueByDataBase {
 		ResultSet rs = C3P0Utils.query(conn, sql);
 		while (rs.next()) {
 			String tableName = rs.getString(1);
-			System.out.println("tableName:【" + tableName + "】start:-----------------------------------");
+//			System.out.println("tableName:【" + tableName + "】start:-----------------------------------");
 			initColumn(tableName, conn);
-			System.out.println("tableName:【" + tableName + "】end:-----------------------------------");
+//			System.out.println("tableName:【" + tableName + "】end:-----------------------------------");
 		}
 		C3P0Utils.closeConnection(conn);
 	} 
@@ -62,7 +62,9 @@ public class ShowValueByDataBase {
 				voFolder = "vo" + File.separator + "base";
 				isChangeVoPackageName = true;
 			}
-			childClazzBuf.append("public class " + baseName + "Vo extends " + voPackageName.substring(0, voPackageName.length() - 1) + "." + baseName + "Vo {\r\r");
+			childClazzBuf.append("import java.io.Serializable;\r");
+			childClazzBuf.append("public class " + baseName + "Vo extends " + voPackageName.substring(0, voPackageName.length() - 1) + "." + baseName + "Vo implements \r\t\tSerializable {\r\r");
+			childClazzBuf.append("\t/**\r\t *\r\t */\r\tprivate static final long serialVersionUID = 1L;\r");
 			childClazzBuf.append("}");
 			packageBuf.append(childClazzBuf);
 			writeFile(baseName, "vo", packageBuf, "Vo.java");
@@ -242,10 +244,50 @@ public class ShowValueByDataBase {
 		StringBuffer resultMap = new StringBuffer();
 		StringBuffer baseSelect = new StringBuffer();
 		int length = columns.size();
+		
+		// 用作司法考试中的freeMarker start
+		/*System.out.println("\t\t<!-- 将" + tableName + "的数据拷贝到test中 start -->");
+		System.out.println("\t\t<sql id=\"syn" + baseName + "TableData\"><![CDATA[");
+		System.out.println("\t\t\tinsert into");
+		System.out.print("\t\t\t\ttest." + tableName + "(");
+		StringBuffer columnStrBuf = new StringBuffer();*/
+		
+//		System.err.print("\"syn" + baseName + "TableData\", ");
+		// 用作司法考试中的freeMarker end
+		
+		// 用作司法考试正式数据库中test表的数据清除start
+//		System.out.println("delete from " + tableName + ";");
+		// 用作司法考试正式数据库中test表的数据清除end
+		
+		// 用作MyBatis中的Mapper映射start
+		System.out.println("<mapper resource=\"config/mybatis/mysql/mapper/" + baseName + "Mapper.xml\"/>");
+		// 用作MyBatis中的Mapper映射end
+		
 		for (int i = 0; i < length; i++) {
 			initResultMap(resultMap, columns.get(i), properties.get(i), baseName);
 			initBaseSelectSql(baseSelect, columns.get(i), baseName);
+			
+			// 用作司法考试中的freeMarker start
+			/*if (i == length - 1) {
+				columnStrBuf.append(columns.get(i));
+			} else {
+				columnStrBuf.append(columns.get(i) + ", ");
+			}*/
+			// 用作司法考试中的freeMarker end
+			
 		}
+		
+		// 用作司法考试中的freeMarker start
+		/*System.out.println(columnStrBuf.toString() + ")");
+		System.out.println("\t\t\tselect");
+		System.out.println("\t\t\t\t" + columnStrBuf.toString());
+		System.out.println("\t\t\tfrom");
+		System.out.println("\t\t\t\texam." + tableName);
+		System.out.println("\t\t]]></sql>");
+		System.out.println("\t\t<!-- 将" + tableName + "的数据拷贝到test中 end -->");
+		System.out.println("");*/
+		// 用作司法考试中的freeMarker end
+		
 		xmlBuf.append(resultMap + "\t</resultMap>\r");
 		xmlBuf.append(baseSelect + "\r\t</sql>\r");
 		initCURD(xmlBuf, tableName, baseName, columns, properties);
@@ -268,7 +310,7 @@ public class ShowValueByDataBase {
 		serviceBuf.append("import " + basePackageName + ".vo." +baseName + "Vo;\r\r");
 		serviceBuf.append("@Service\r");
 		serviceBuf.append("public class " + baseName + "Service {\r\r");
-		serviceBuf.append("\t@Resource\r\r");
+		serviceBuf.append("\t@Resource\r");
 		String firstCodeToLowerCase = firstCodeToLowerCase(baseName);
 		String classMapper = baseName + "Mapper";
 		String varMapper = firstCodeToLowerCase + "Mapper";
@@ -315,11 +357,11 @@ public class ShowValueByDataBase {
 			classHead.append("\t\t" + varMapper + ".update" + baseName + "(" + varVo + ");\r");
 			classHead.append("\t}\r\r");
 			
-			classHead.append("\tpublic List<" + classVo + "> get" + baseName + "ByPage(Page<" + classVo + "> page) throws Exception {\r\r");
+			classHead.append("\tpublic List<" + classVo + "> get" + baseName + "ByPage(Page<" + classVo + "> page) throws Exception {\r");
 			classHead.append("\t\treturn " + varMapper + ".get" + baseName + "ByPage(page);\r");
 			classHead.append("\t}\r\r");
 			
-			classHead.append("\tpublic void del" + baseName + "ById(" + classVo + " " + varVo + ") throws Exception {\r\r");
+			classHead.append("\tpublic void del" + baseName + "ById(" + classVo + " " + varVo + ") throws Exception {\r");
 			classHead.append("\t\t" + varMapper + ".del" + baseName + "ById(" + varVo + ");\r");
 			classHead.append("\t}\r\r");
 		}
@@ -533,6 +575,7 @@ public class ShowValueByDataBase {
 	 * @return
 	 */
 	private String typeTrans(String columnType, StringBuffer importBuf) {
+		columnType = columnType.toLowerCase();
 		if (columnType.contains("tinyint")) {
 			return "boolean";
 		} else if (columnType.contains("int")) {
